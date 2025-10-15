@@ -78,7 +78,7 @@ export async function shareNote(id: string, email: string) {
 
   if (updateError) throw new Error(updateError.message);
 
-  // 🔔 Trigger the Supabase Edge Function to send the email
+  // Trigger the Supabase Edge Function to send the email
   try {
     const res = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-share-email`,

@@ -78,7 +78,7 @@ export default function Dashboard({ onSignOut, userEmail }: DashboardProps) {
   if (!userId) return;
   setCreating(true);
   try {
-    await createNote(title, content, userId);
+    await createNote(title, content, userId, userEmail);
     setTitle("");
     setContent("");
     await handleFetchNotes();

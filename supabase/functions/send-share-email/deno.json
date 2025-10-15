@@ -1,8 +1,0 @@
-{
-  "compilerOptions": {
-    "lib": ["deno.window", "deno.ns"]
-  },
-  "tasks": {
-    "start": "deno run --allow-net --allow-env --allow-read supabase/functions/send-share-email/index.ts"
-  }
-}

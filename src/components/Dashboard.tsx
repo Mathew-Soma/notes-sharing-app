@@ -22,14 +22,13 @@ export default function Dashboard({ onSignOut, userEmail }: DashboardProps) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [search, setSearch] = useState("");
-  const [shareEmail, setShareEmail] = useState("");
+  const [shareEmails, setShareEmails] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
 
   const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [sharingId, setSharingId] = useState<string | null>(null);
-
 
   // Get logged-in user
   useEffect(() => {
@@ -75,49 +74,47 @@ export default function Dashboard({ onSignOut, userEmail }: DashboardProps) {
   }
 
   async function handleCreateNote() {
-  if (!userId) return;
-  setCreating(true);
-  try {
-    await createNote(title, content, userId, userEmail);
-    setTitle("");
-    setContent("");
-    await handleFetchNotes();
-  } catch (err: any) {
-    alert(err.message);
-  } finally {
-    setCreating(false);
+    if (!userId) return;
+    setCreating(true);
+    try {
+      await createNote(title, content, userId, userEmail);
+      setTitle("");
+      setContent("");
+      await handleFetchNotes();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setCreating(false);
+    }
   }
-}
-
 
   async function handleDeleteNote(id: string) {
-  setDeletingId(id);
-  try {
-    await deleteNote(id);
-    setNotes((prev) => prev.filter((n) => n.id !== id));
-  } catch (err: any) {
-    alert(err.message);
-  } finally {
-    setDeletingId(null);
+    setDeletingId(id);
+    try {
+      await deleteNote(id);
+      setNotes((prev) => prev.filter((n) => n.id !== id));
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setDeletingId(null);
+    }
   }
-}
-
 
   async function handleShareNote(id: string) {
-  if (!shareEmail) return alert("Enter an email to share with.");
-  setSharingId(id);
-  try {
-    await shareNote(id, shareEmail);
-    alert("Note shared successfully!");
-    setShareEmail("");
-    await handleFetchNotes();
-  } catch (err: any) {
-    alert(err.message);
-  } finally {
-    setSharingId(null);
+    const email = shareEmails[id];
+    if (!email) return alert("Enter an email to share with.");
+    setSharingId(id);
+    try {
+      await shareNote(id, email);
+      alert("Note shared successfully!");
+      setShareEmails((prev) => ({ ...prev, [id]: "" })); // clear this note's input
+      await handleFetchNotes();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setSharingId(null);
+    }
   }
-}
-
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
@@ -155,11 +152,11 @@ export default function Dashboard({ onSignOut, userEmail }: DashboardProps) {
             onClick={handleCreateNote}
             disabled={creating}
             className={`bg-blue-600 text-white rounded-md px-4 py-2 hover:bg-blue-700 ${
-                creating ? "opacity-70 cursor-not-allowed" : "cursor-pointer"
+              creating ? "opacity-70 cursor-not-allowed" : "cursor-pointer"
             }`}
-            >
+          >
             {creating ? "Saving..." : "Save Note"}
-            </button>
+          </button>
         </div>
 
         {/* Notes List */}
@@ -191,13 +188,13 @@ export default function Dashboard({ onSignOut, userEmail }: DashboardProps) {
                     onClick={() => handleDeleteNote(note.id)}
                     disabled={deletingId === note.id}
                     className={`text-sm border px-2 rounded-md ${
-                        deletingId === note.id
+                      deletingId === note.id
                         ? "opacity-70 cursor-not-allowed"
                         : "cursor-pointer hover:bg-slate-100"
                     }`}
-                    >
+                  >
                     {deletingId === note.id ? "Deleting..." : "Delete"}
-                    </button>
+                  </button>
                 )}
               </div>
 
@@ -207,34 +204,46 @@ export default function Dashboard({ onSignOut, userEmail }: DashboardProps) {
                 </ReactMarkdown>
               </div>
 
-              {/* Share input */}
+              {/* Share input for note owner */}
               {note.owner_id === userId && (
                 <div className="flex gap-2 mt-2">
                   <input
                     type="email"
                     placeholder="Enter email to share"
                     className="border rounded-md p-1 flex-1"
-                    value={shareEmail}
-                    onChange={(e) => setShareEmail(e.target.value)}
+                    value={shareEmails[note.id] || ""}
+                    onChange={(e) =>
+                      setShareEmails((prev) => ({
+                        ...prev,
+                        [note.id]: e.target.value,
+                      }))
+                    }
                   />
                   <button
                     onClick={() => handleShareNote(note.id)}
                     disabled={sharingId === note.id}
                     className={`bg-green-600 text-white px-2 rounded-md hover:bg-green-700 ${
-                        sharingId === note.id
+                      sharingId === note.id
                         ? "opacity-70 cursor-not-allowed"
                         : "cursor-pointer"
                     }`}
-                    >
+                  >
                     {sharingId === note.id ? "Sharing..." : "Share"}
-                    </button>
+                  </button>
                 </div>
               )}
 
-              {/* Shared info */}
-              {note.shared_with?.length > 0 && (
+              {/* Shared info for note owner */}
+              {note.owner_id === userId && note.shared_with?.length > 0 && (
                 <p className="text-xs text-slate-500 mt-1">
                   Shared with: {note.shared_with.join(", ")}
+                </p>
+              )}
+
+              {/* Show who shared this note if the current user is NOT the owner */}
+              {note.owner_email !== userEmail && (
+                <p className="text-xs text-slate-500 italic mt-1">
+                  Shared by {note.owner_email}
                 </p>
               )}
             </div>
